@@ -65,7 +65,54 @@ async def create_community_reports(
     reports: list[CommunityReport | None] = []
     tick = progress_ticker(callbacks.progress, len(local_contexts))
     runner = load_strategy(strategy["type"])
+    
+    
+    """
+    local_contexts df:
+    all_contexts is a list of each entity's description in "node_details" along with incident edges in "edge_details"
+    community                                        all_context                                     context_string  context_size  context_exceed_limit  level
+0        10  [{'title': 'ALPACA', 'degree': 2, 'node_detail...  -----Entities-----\nhuman_readable_id,title,de...          1550                 False      2
+1         9  [{'title': 'LLM INFERENCE', 'degree': 1, 'node...  -----Entities-----\nhuman_readable_id,title,de...           173                 False      2
+0         4  [{'title': 'ALPACA', 'degree': 2, 'node_detail...  -----Entities-----\nhuman_readable_id,title,de...          1673                 False      1
+1         5  [{'title': 'FASTER TRANSFORMER', 'degree': 3, ...  -----Entities-----\nhuman_readable_id,title,de...           416                 False      1
+2         6  [{'title': 'GPU', 'degree': 2, 'node_details':...  -----Entities-----\nhuman_readable_id,title,de...           321                 False      1
+3         7  [{'title': 'FASTERTRANSFORMER', 'degree': 7, '...  -----Entities-----\nhuman_readable_id,title,de...          1706                 False      1
+4         8  [{'title': 'ORCA', 'degree': 8, 'node_details'...  -----Entities-----\nhuman_readable_id,title,de...           327                 False      1
+0         0  [{'title': 'ALPACA', 'degree': 2, 'node_detail...  -----Entities-----\nhuman_readable_id,title,de...          2146                 False      0
+1         1  [{'title': 'COPY-ON-WRITE', 'degree': 2, 'node...  -----Entities-----\nhuman_readable_id,title,de...           793                 False      0
+2         2  [{'title': 'GPT', 'degree': 2, 'node_details':...  -----Entities-----\nhuman_readable_id,title,de...           277                 False      0
+3         3  [{'title': 'FASTERTRANSFORMER', 'degree': 7, '...  -----Entities-----\nhuman_readable_id,title,de...          1832                 False      0
+    
+    example entity in all_contexts:
 
+    {
+        "title": "OPT-13B",
+        "degree": 1,
+        "node_details": {
+            "human_readable_id": 411,
+            "title": "OPT-13B",
+            "description": "OPT-13B is a type of computer model that has demonstrated exceptional processing capabilities. It can handle a significant number of requests simultaneously, outperforming other models such as Orca (Oracle) and Orca (Max). Specifically, OPT-13B can process 2.2 times more requests at the same time than Orca (Oracle) and 4.3 times more requests than Orca (Max), showcasing its impressive scalability and efficiency.",
+            "degree": 1,
+        },
+        "edge_details": [
+            nan,
+            {
+                "human_readable_id": "62",
+                "source": "VLLM",
+                "target": "OPT-13B",
+                "description": "vLLM can process 2.2× more requests at the same time than Orca (Oracle) and 4.3× more requests than Orca (Max).",
+                "rank": 30,
+            },
+        ],
+        "claim_details": [],
+    }
+
+    """
+    
+    # 1. reverse levels to start from top level
+    # 2. make report solely based on local context
+    # 3. if local context exceeds the limit, trim context based on degrees or ranking algorithms
+    pruning_strategy = strategy.get("local_context_pruning_strategy", "none")
     for level in levels:
         level_contexts = prep_community_report_context(
             pd.DataFrame(reports),
@@ -75,6 +122,7 @@ async def create_community_reports(
             max_tokens=strategy.get(
                 "max_input_tokens", defaults.COMMUNITY_REPORT_MAX_INPUT_LENGTH
             ),
+            pruning_strategy=pruning_strategy,
         )
 
         async def run_generate(record):
@@ -98,7 +146,6 @@ async def create_community_reports(
             scheduling_type=async_mode,
         )
         reports.extend([lr for lr in local_reports if lr is not None])
-
     return TableContainer(table=pd.DataFrame(reports))
 
 

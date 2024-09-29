@@ -32,6 +32,7 @@ def prep_community_report_context(
     local_context_df: pd.DataFrame,
     level: int | str,
     max_tokens: int,
+    pruning_strategy: str,
 ) -> pd.DataFrame:
     """
     Prep context for each community in a given level.
@@ -53,7 +54,15 @@ def prep_community_report_context(
     if invalid_context_df.empty:
         return valid_context_df
 
-    if report_df.empty:
+    # check pruning strategy here
+    breakpoint()
+    if pruning_strategy == "degree":
+        # add using or condition on L63
+        pass
+
+    if report_df.empty: # when subcommunities don't exist, assumes levels is processed in bottom-up order
+        # (original) when bottom level of community hierarchy, no sub-communities. 
+        # Override to use this if pruning strategy == degree.
         invalid_context_df[schemas.CONTEXT_STRING] = _sort_and_trim_context(
             invalid_context_df, max_tokens
         )
