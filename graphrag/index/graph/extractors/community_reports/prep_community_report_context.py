@@ -51,25 +51,42 @@ def prep_community_report_context(
 
     # there is no report to substitute with, so we just trim the local context of the invalid context records
     # this case should only happen at the bottom level of the community hierarchy where there are no sub-communities
-    if invalid_context_df.empty:
+    if invalid_context_df.empty:    # it's never invalid for small cases
         return valid_context_df
 
+    # there are contexts that exceed the limit
     # check pruning strategy here
-    breakpoint()
     if pruning_strategy == "degree":
         # add using or condition on L63
-        pass
+        """
+        e.g. invalid_context_df previously
+            community                                        all_context                                     context_string  context_size  context_exceed_limit  level
+                    0  [{'title': 'ALPACA', 'degree': 2, 'node_detail...  -----Entities-----\nhuman_readable_id,title,de...          2146                  True      0
+                    3  [{'title': 'FASTERTRANSFORMER', 'degree': 7, '...  -----Entities-----\nhuman_readable_id,title,de...          1832                  True      0
+        
+        trimmed context:
+            community                                        all_context                                     context_string  context_size  context_exceed_limit  level
+                    0  [{'title': 'ALPACA', 'degree': 2, 'node_detail...  -----Entities-----\nhuman_readable_id,title,de...           952                     0      0
+                    3  [{'title': 'FASTERTRANSFORMER', 'degree': 7, '...  -----Entities-----\nhuman_readable_id,title,de...           991                     0      0
+        """
+        return _trim_context_to_max_tokens(valid_context_df, invalid_context_df, max_tokens)
 
-    if report_df.empty: # when subcommunities don't exist, assumes levels is processed in bottom-up order
-        # (original) when bottom level of community hierarchy, no sub-communities. 
+    if report_df.empty: # (original) when subcommunities don't exist, assumes levels is processed in bottom-up order
+        # (original) when bottom level of community hierarchy, no sub-communities.
         # Override to use this if pruning strategy == degree.
-        invalid_context_df[schemas.CONTEXT_STRING] = _sort_and_trim_context(
-            invalid_context_df, max_tokens
-        )
-        set_context_size(invalid_context_df)
-        invalid_context_df[schemas.CONTEXT_EXCEED_FLAG] = 0
-        return union(valid_context_df, invalid_context_df)
+        return _trim_context_to_max_tokens(valid_context_df, invalid_context_df, max_tokens)
+        
+        # (original)
+        # invalid_context_df[schemas.CONTEXT_STRING] = _sort_and_trim_context(
+        #     invalid_context_df, max_tokens
+        # )
+        # set_context_size(invalid_context_df)
+        # invalid_context_df[schemas.CONTEXT_EXCEED_FLAG] = 0
+        # return union(valid_context_df, invalid_context_df)
 
+    assert pruning_strategy == "none", "If local context pruning strategy != none we shouldn't reach this point in execution"
+    
+    # otherwise we will try to substitute with sub-community reports
     level_context_df = _antijoin_reports(level_context_df, report_df)
 
     # for each invalid context, we will try to substitute with sub-community reports
@@ -91,6 +108,17 @@ def prep_community_report_context(
     result[schemas.CONTEXT_EXCEED_FLAG] = 0
     return result
 
+# extracted common function used when at bottom level + or pruning strategy = degree
+def _trim_context_to_max_tokens(valid_context_df: pd.DataFrame, invalid_context_df: pd.DataFrame, max_tokens: int) -> pd.DataFrame:
+    # update context with sorted and trimmed context
+    invalid_context_df[schemas.CONTEXT_STRING] = _sort_and_trim_context(
+            invalid_context_df, max_tokens
+    )
+    # update context size
+    set_context_size(invalid_context_df)
+    # mark context as within the limit
+    invalid_context_df[schemas.CONTEXT_EXCEED_FLAG] = 0
+    return union(valid_context_df, invalid_context_df)
 
 def _drop_community_level(df: pd.DataFrame) -> pd.DataFrame:
     """Drop the community level column from the dataframe."""

@@ -44,7 +44,7 @@ def restore_community_hierarchy(
 
     community_hierarchy = []
 
-    for idx in range(len(levels) - 1):
+    for idx in range(len(levels) - 1):      ### why levels - 1, excludes final level?
         level = levels[idx]
         log.debug("Level: %s", level)
         next_level = levels[idx + 1]
