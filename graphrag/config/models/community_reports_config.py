@@ -29,6 +29,10 @@ class CommunityReportsConfig(LLMConfig):
     strategy: dict | None = Field(
         description="The override strategy to use.", default=None
     )
+    
+    local_context_pruning_strategy: str | None = Field(
+        description="The local context pruning strategy to use.", default=None
+    )
 
     def resolved_strategy(self, root_dir) -> dict:
         """Get the resolved community report extraction strategy."""
@@ -45,4 +49,5 @@ class CommunityReportsConfig(LLMConfig):
             else None,
             "max_report_length": self.max_length,
             "max_input_length": self.max_input_length,
+            "local_context_pruning_strategy": self.local_context_pruning_strategy,
         }

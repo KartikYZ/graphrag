@@ -471,6 +471,7 @@ def create_graphrag_config(
                 or defs.COMMUNITY_REPORT_MAX_LENGTH,
                 max_input_length=reader.int("max_input_length")
                 or defs.COMMUNITY_REPORT_MAX_INPUT_LENGTH,
+                local_context_pruning_strategy=reader.str("local_context_pruning_strategy")
             )
 
         summarize_description_config = values.get("summarize_descriptions") or {}

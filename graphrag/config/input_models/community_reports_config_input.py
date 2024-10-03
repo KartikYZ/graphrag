@@ -15,3 +15,4 @@ class CommunityReportsConfigInput(LLMConfigInput):
     max_length: NotRequired[int | str | None]
     max_input_length: NotRequired[int | str | None]
     strategy: NotRequired[dict | None]
+    local_context_pruning_strategy: NotRequired[str | None]
