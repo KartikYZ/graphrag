@@ -112,7 +112,7 @@ async def create_community_reports(
     # 1. reverse levels to start from top level
     # 2. make report solely based on local context
     # 3. if local context exceeds the limit, trim context based on degrees or ranking algorithms
-    pruning_strategy = strategy.get("local_context_pruning_strategy", "none")
+    pruning_strategy = strategy.get("local_context_pruning_strategy") or "none"
     if pruning_strategy == "degree":
         levels = list(reversed(levels))
     
