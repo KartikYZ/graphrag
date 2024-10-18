@@ -18,6 +18,7 @@ from graphrag.index.utils.dataframes import (
     union,
     where_column_equals,
 )
+from graphrag.model.available_context import AvailableContext
 
 from .build_mixed_context import build_mixed_context
 from .sort_context import sort_context
@@ -33,6 +34,7 @@ def prep_community_report_context(
     level: int | str,
     max_tokens: int,
     pruning_strategy: str,
+    available_contexts: list[AvailableContext] | None = None,
 ) -> pd.DataFrame:
     """
     Prep context for each community in a given level.
@@ -69,7 +71,8 @@ def prep_community_report_context(
                     0  [{'title': 'ALPACA', 'degree': 2, 'node_detail...  -----Entities-----\nhuman_readable_id,title,de...           952                     0      0
                     3  [{'title': 'FASTERTRANSFORMER', 'degree': 7, '...  -----Entities-----\nhuman_readable_id,title,de...           991                     0      0
         """
-        return _trim_context_to_max_tokens(valid_context_df, invalid_context_df, max_tokens)
+        assert isinstance(available_contexts, list), "If pruning strategy == degree, trimmed_context should be a DataFrame"
+        return _trim_context_to_max_tokens(valid_context_df, invalid_context_df, max_tokens, available_contexts=available_contexts)
 
     if report_df.empty: # (original) when subcommunities don't exist, assumes levels is processed in bottom-up order
         # (original) when bottom level of community hierarchy, no sub-communities.
@@ -109,10 +112,10 @@ def prep_community_report_context(
     return result
 
 # extracted common function used when at bottom level + or pruning strategy = degree
-def _trim_context_to_max_tokens(valid_context_df: pd.DataFrame, invalid_context_df: pd.DataFrame, max_tokens: int) -> pd.DataFrame:
+def _trim_context_to_max_tokens(valid_context_df: pd.DataFrame, invalid_context_df: pd.DataFrame, max_tokens: int, available_contexts: pd.DataFrame | None = None) -> pd.DataFrame:
     # update context with sorted and trimmed context
     invalid_context_df[schemas.CONTEXT_STRING] = _sort_and_trim_context(
-            invalid_context_df, max_tokens
+            invalid_context_df, max_tokens, available_contexts=available_contexts
     )
     # update context size
     set_context_size(invalid_context_df)
@@ -145,13 +148,14 @@ def _antijoin_reports(df: pd.DataFrame, reports: pd.DataFrame) -> pd.DataFrame:
     return antijoin(df, reports, schemas.NODE_COMMUNITY)
 
 ### CEDAR: save trimmed context; can be parallelized
-def _sort_context_save_trimmed_context(row: pd.Series, max_tokens: int) -> str:
-    return sort_context(row[schemas.ALL_CONTEXT], max_tokens=max_tokens)
+def _sort_context_save_trimmed_context(row: pd.Series, max_tokens: int, available_contexts: pd.DataFrame | None = None) -> str:
+    return sort_context(row[schemas.ALL_CONTEXT], max_tokens=max_tokens, source_community_id=row[schemas.NODE_COMMUNITY], available_contexts=available_contexts)
 
-def _sort_and_trim_context(df: pd.DataFrame, max_tokens: int) -> pd.Series:
+def _sort_and_trim_context(df: pd.DataFrame, max_tokens: int, available_contexts: pd.DataFrame | None = None) -> pd.Series:
     """Sort and trim context to fit the limit."""
-    trimmed_context = df.apply(lambda x: _sort_context_save_trimmed_context(x, max_tokens=max_tokens), axis=1)
-    return cast(pd.Series, trimmed_context)
+    # pass in the row as a series to the lambda function to access source community id
+    valid_context = df.apply(lambda x: _sort_context_save_trimmed_context(x, max_tokens=max_tokens, available_contexts=available_contexts), axis=1)
+    return cast(pd.Series, valid_context)
 
 
 def _build_mixed_context(df: pd.DataFrame, max_tokens: int) -> pd.Series:

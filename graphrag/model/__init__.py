@@ -8,6 +8,7 @@ The GraphRAG knowledge model contains a set of classes that represent the target
 These models can be augmented and integrated into your own data infrastructure to suit your needs.
 """
 
+from .available_context import AvailableContext
 from .community import Community
 from .community_report import CommunityReport
 from .covariate import Covariate
@@ -19,6 +20,7 @@ from .relationship import Relationship
 from .text_unit import TextUnit
 
 __all__ = [
+    "AvailableContext",
     "Community",
     "CommunityReport",
     "Covariate",

@@ -5,6 +5,7 @@
 import pandas as pd
 
 import graphrag.index.graph.extractors.community_reports.schemas as schemas
+from graphrag.model import AvailableContext
 from graphrag.query.llm.text_utils import num_tokens
 
 
@@ -23,6 +24,8 @@ def sort_context(
     claim_id_column: str = schemas.CLAIM_ID,
     claim_details_column: str = schemas.CLAIM_DETAILS,
     community_id_column: str = schemas.COMMUNITY_ID,
+    source_community_id: str | None = None,
+    available_contexts: list[AvailableContext] | None = None
 ) -> str:
     """Sort context by degree in descending order.
 
@@ -130,7 +133,7 @@ def sort_context(
     sorted_nodes = []
     sorted_claims = []
     context_string = ""
-    for idx, edge in enumerate(edges):  # TODO: are isolated vertices not included in the local context?
+    for index, edge in enumerate(edges):  # TODO: are isolated vertices not included in the local context?
         source_details = node_details.get(edge[edge_source_column], {})
         target_details = node_details.get(edge[edge_target_column], {})
         sorted_nodes.extend([source_details, target_details])
@@ -144,8 +147,15 @@ def sort_context(
                 sorted_nodes, sorted_edges, sorted_claims, sub_community_reports
             )
             if num_tokens(new_context_string) > max_tokens:
-                # add community id, idx, node_details, and edges
-                # breakpoint()
+                if source_community_id and available_contexts is not None:
+                    # add community id, idx, node_details, and edges to trimmed_context; can be made more efficient by only saving spanned nodes by remaining edges
+                    available_context: AvailableContext = AvailableContext(
+                        source_community_id=source_community_id,
+                        index=index,
+                        node_details=node_details,
+                        edges=edges,
+                    )
+                    available_contexts.append(available_context)
                 break
             context_string = new_context_string
 

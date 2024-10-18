@@ -27,6 +27,7 @@ from graphrag.index.graph.extractors.community_reports import (
     prep_community_report_context,
 )
 from graphrag.index.utils.ds_util import get_required_input_table
+from graphrag.model.available_context import AvailableContext
 
 from .strategies.typing import CommunityReport, CommunityReportsStrategy
 
@@ -108,13 +109,15 @@ async def create_community_reports(
     }
 
     """
-    # breakpoint()
     # 1. reverse levels to start from top level
     # 2. make report solely based on local context
     # 3. if local context exceeds the limit, trim context based on degrees or ranking algorithms
     pruning_strategy = strategy.get("local_context_pruning_strategy") or "none"
+    
+    available_contexts = None
     if pruning_strategy == "degree":    # if degree, trim context based on degrees, process in top down order
         levels = list(reversed(levels))
+        available_contexts: list[AvailableContext] = []   # TODO: persist to disk for use at query time
     
     for level in levels:    # level 0 is root level
         time_start = pd.Timestamp.now()
@@ -128,6 +131,7 @@ async def create_community_reports(
                 "max_input_length", defaults.COMMUNITY_REPORT_MAX_INPUT_LENGTH
             ),
             pruning_strategy=pruning_strategy,
+            available_contexts=available_contexts,
         )
         
         async def run_generate(record):
@@ -152,7 +156,8 @@ async def create_community_reports(
         )
         reports.extend([lr for lr in local_reports if lr is not None])
         time_end = pd.Timestamp.now()
-        log.info("[CR_GEN TIME] Level %s community report generation took %s", level, time_end - time_start)
+        log.info("[CR GEN TIME] Level %s community report generation took %s", level, time_end - time_start)
+    
     return TableContainer(table=pd.DataFrame(reports))
 
 
