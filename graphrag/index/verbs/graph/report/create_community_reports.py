@@ -100,7 +100,7 @@ async def create_community_reports(
                 "human_readable_id": "62",
                 "source": "VLLM",
                 "target": "OPT-13B",
-                "description": "vLLM can process 2.2× more requests at the same time than Orca (Oracle) and 4.3× more requests than Orca (Max).",
+                "description": "vLLM can process 2.2x more requests at the same time than Orca (Oracle) and 4.3x more requests than Orca (Max).",
                 "rank": 30,
             },
         ],
@@ -108,12 +108,12 @@ async def create_community_reports(
     }
 
     """
-    
+    # breakpoint()
     # 1. reverse levels to start from top level
     # 2. make report solely based on local context
     # 3. if local context exceeds the limit, trim context based on degrees or ranking algorithms
     pruning_strategy = strategy.get("local_context_pruning_strategy") or "none"
-    if pruning_strategy == "degree":
+    if pruning_strategy == "degree":    # if degree, trim context based on degrees, process in top down order
         levels = list(reversed(levels))
     
     for level in levels:    # level 0 is root level
@@ -152,7 +152,7 @@ async def create_community_reports(
         )
         reports.extend([lr for lr in local_reports if lr is not None])
         time_end = pd.Timestamp.now()
-        log.debug("[CR_GEN TIME] Level %s community report generation took %s", level, time_end - time_start)
+        log.info("[CR_GEN TIME] Level %s community report generation took %s", level, time_end - time_start)
     return TableContainer(table=pd.DataFrame(reports))
 
 

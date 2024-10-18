@@ -28,12 +28,11 @@ def sort_context(
 
     If max tokens is provided, we will return the context string that fits within the token limit.
     """
-
     def _get_context_string(
         entities: list[dict],
         edges: list[dict],
         claims: list[dict],
-        sub_community_reports: list[dict] | None = None,
+        sub_community_reports: list[dict] | None = None,        ### in top-down processing, this is always None
     ) -> str:
         """Concatenate structured data into a context string."""
         contexts = []
@@ -131,7 +130,7 @@ def sort_context(
     sorted_nodes = []
     sorted_claims = []
     context_string = ""
-    for edge in edges:
+    for idx, edge in enumerate(edges):  # TODO: are isolated vertices not included in the local context?
         source_details = node_details.get(edge[edge_source_column], {})
         target_details = node_details.get(edge[edge_target_column], {})
         sorted_nodes.extend([source_details, target_details])
@@ -145,6 +144,8 @@ def sort_context(
                 sorted_nodes, sorted_edges, sorted_claims, sub_community_reports
             )
             if num_tokens(new_context_string) > max_tokens:
+                # add community id, idx, node_details, and edges
+                # breakpoint()
                 break
             context_string = new_context_string
 

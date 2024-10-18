@@ -144,11 +144,14 @@ def _antijoin_reports(df: pd.DataFrame, reports: pd.DataFrame) -> pd.DataFrame:
     """Return records in df that are not in reports."""
     return antijoin(df, reports, schemas.NODE_COMMUNITY)
 
+### CEDAR: save trimmed context; can be parallelized
+def _sort_context_save_trimmed_context(row: pd.Series, max_tokens: int) -> str:
+    return sort_context(row[schemas.ALL_CONTEXT], max_tokens=max_tokens)
 
 def _sort_and_trim_context(df: pd.DataFrame, max_tokens: int) -> pd.Series:
     """Sort and trim context to fit the limit."""
-    series = cast(pd.Series, df[schemas.ALL_CONTEXT])
-    return transform_series(series, lambda x: sort_context(x, max_tokens=max_tokens))
+    trimmed_context = df.apply(lambda x: _sort_context_save_trimmed_context(x, max_tokens=max_tokens), axis=1)
+    return cast(pd.Series, trimmed_context)
 
 
 def _build_mixed_context(df: pd.DataFrame, max_tokens: int) -> pd.Series:
