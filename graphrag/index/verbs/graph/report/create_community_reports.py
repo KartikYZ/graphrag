@@ -3,10 +3,14 @@
 
 """A module containing create_community_reports and load_strategy methods definition."""
 
+import asyncio
 import logging
+import pickle
 from enum import Enum
+from pathlib import Path
 from typing import cast
 
+import aiofiles
 import pandas as pd
 from datashaper import (
     AsyncType,
@@ -115,7 +119,7 @@ async def create_community_reports(
     pruning_strategy = strategy.get("local_context_pruning_strategy") or "none"
     
     available_contexts = None
-    if pruning_strategy == "degree":    # if degree, trim context based on degrees, process in top down order
+    if pruning_strategy == "degree":    # if degree, trim context based on degrees, process in top down order; TODO - rename to cedar pruning strategy
         levels = list(reversed(levels))
         available_contexts: list[AvailableContext] = []   # TODO: persist to disk for use at query time
     
@@ -158,9 +162,20 @@ async def create_community_reports(
         time_end = pd.Timestamp.now()
         log.info("[CR GEN TIME] Level %s community report generation took %s", level, time_end - time_start)
     
+    # TODO: how to do it in a graphrag-native way?
+    await _save_available_contexts(available_contexts=available_contexts, save_dir=_kwargs["storage"]._root_dir)
+    
     return TableContainer(table=pd.DataFrame(reports))
 
-
+async def _save_available_contexts(available_contexts: list[AvailableContext], save_dir: str):
+    path = Path(save_dir)
+    if not path.exists():
+        Path.mkdir(path, parents=True)
+    file_path = path / "available_contexts.pkl"
+    async with aiofiles.open(file_path, "wb") as f:
+        await f.write(pickle.dumps(available_contexts))
+        pickle.dump(available_contexts, f)
+    
 async def _generate_report(
     runner: CommunityReportsStrategy,
     cache: PipelineCache,
@@ -183,7 +198,6 @@ def load_strategy(
     match strategy:
         case CreateCommunityReportsStrategyType.graph_intelligence:
             from .strategies.graph_intelligence import run
-
             return run
         case _:
             msg = f"Unknown strategy: {strategy}"
