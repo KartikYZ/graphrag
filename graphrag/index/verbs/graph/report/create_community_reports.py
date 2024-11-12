@@ -161,6 +161,9 @@ async def create_community_reports(
         reports.extend([lr for lr in local_reports if lr is not None])
         time_end = pd.Timestamp.now()
         log.info("[CR GEN TIME] Level %s community report generation took %s", level, time_end - time_start)
+        
+        assert level == 0, "Only level 0 is supported for now"
+        break
     
     # TODO: how to do it in a graphrag-native way?
     await _save_available_contexts(available_contexts=available_contexts, save_dir=_kwargs["storage"]._root_dir)

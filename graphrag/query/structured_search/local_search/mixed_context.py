@@ -113,7 +113,7 @@ class LocalSearchMixedContext(LocalContextBuilder):
         community_context_name: str = "Reports",
         column_delimiter: str = "|",
         **kwargs: dict[str, Any],
-    ) -> tuple[str | list[str], dict[str, pd.DataFrame]]:
+    ) -> tuple[str | list[str], dict[str, pd.DataFrame], dict[str, int] | None]:       # cedar: extend result to include community_matches
         """
         Build data context for local search prompt.
 
@@ -174,7 +174,7 @@ class LocalSearchMixedContext(LocalContextBuilder):
 
         # build community context
         community_tokens = max(int(max_tokens * community_prop), 0)
-        community_context, community_context_data = self._build_community_context(
+        community_context, community_context_data, community_matches = self._build_community_context(
             selected_entities=selected_entities,
             max_tokens=community_tokens,
             use_community_summary=use_community_summary,
@@ -184,6 +184,7 @@ class LocalSearchMixedContext(LocalContextBuilder):
             return_candidate_context=return_candidate_context,
             context_name=community_context_name,
         )
+        
         if community_context.strip() != "":
             final_context.append(community_context)
             final_context_data = {**final_context_data, **community_context_data}
@@ -217,6 +218,11 @@ class LocalSearchMixedContext(LocalContextBuilder):
             final_context.append(text_unit_context)
             final_context_data = {**final_context_data, **text_unit_context_data}
 
+        # hardcode for now - later pass in via config
+        cedar = True
+        if cedar:
+            return ("\n\n".join(final_context), final_context_data, community_matches)
+
         return ("\n\n".join(final_context), final_context_data)
 
     def _build_community_context(
@@ -229,7 +235,7 @@ class LocalSearchMixedContext(LocalContextBuilder):
         min_community_rank: int = 0,
         return_candidate_context: bool = False,
         context_name: str = "Reports",
-    ) -> tuple[str, dict[str, pd.DataFrame]]:
+    ) -> tuple[str, dict[str, pd.DataFrame], dict[str, int] | None]:       # cedar: extend result to include community_matches
         """Add community data to the context window until it hits the max_tokens limit."""
         if len(selected_entities) == 0 or len(self.community_reports) == 0:
             return ("", {context_name.lower(): pd.DataFrame()})
@@ -299,6 +305,12 @@ class LocalSearchMixedContext(LocalContextBuilder):
                     context_data[context_key] = candidate_context_data
                 else:
                     context_data[context_key]["in_context"] = True
+        
+        # hardcode for now
+        cedar = True
+        if cedar:
+            return (str(context_text), context_data, community_matches)
+                    
         return (str(context_text), context_data)
 
     def _build_text_unit_context(

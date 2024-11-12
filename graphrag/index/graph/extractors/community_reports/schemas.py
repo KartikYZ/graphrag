@@ -29,10 +29,11 @@ CLAIM_DESCRIPTION = "description"
 CLAIM_DETAILS = "claim_details"
 
 # COMMUNITY HIERARCHY TABLE SCHEMA
-SUB_COMMUNITY = "sub_communitty"
+SUB_COMMUNITY = "sub_community"
 SUB_COMMUNITY_SIZE = "sub_community_size"
 COMMUNITY_LEVEL = "level"
 CONTEXT_COMMUNITY_ID = "community"
+SUB_COMMUNITY_ENTITY_FRACTION = "entity_fraction"
 
 # COMMUNITY CONTEXT TABLE SCHEMA
 ALL_CONTEXT = "all_context"

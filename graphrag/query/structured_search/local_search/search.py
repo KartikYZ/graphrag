@@ -6,6 +6,7 @@
 import logging
 import time
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from typing import Any
 
 import tiktoken
@@ -28,6 +29,11 @@ DEFAULT_LLM_PARAMS = {
 
 log = logging.getLogger(__name__)
 
+@dataclass
+class LocalSearchResult(SearchResult):
+    """A GlobalSearch result."""
+
+    community_matches: list[str]
 
 class LocalSearch(BaseSearch):
     """Search orchestration for local search mode."""
@@ -59,17 +65,18 @@ class LocalSearch(BaseSearch):
         query: str,
         conversation_history: ConversationHistory | None = None,
         **kwargs,
-    ) -> SearchResult:
+    ) -> SearchResult | LocalSearchResult:
         """Build local search context that fits a single context window and generate answer for the user query."""
         start_time = time.time()
         search_prompt = ""
 
-        context_text, context_records = self.context_builder.build_context(
+        context_text, context_records, community_matches = self.context_builder.build_context(
             query=query,
             conversation_history=conversation_history,
             **kwargs,
             **self.context_builder_params,
         )
+        
         log.info("GENERATE ANSWER: %s. QUERY: %s", start_time, query)
         try:
             search_prompt = self.system_prompt.format(
@@ -86,15 +93,26 @@ class LocalSearch(BaseSearch):
                 callbacks=self.callbacks,
                 **self.llm_params,
             )
-
-            return SearchResult(
+            
+            # cedar
+            return LocalSearchResult(
                 response=response,
+                community_matches=community_matches,
                 context_data=context_records,
                 context_text=context_text,
                 completion_time=time.time() - start_time,
                 llm_calls=1,
                 prompt_tokens=num_tokens(search_prompt, self.token_encoder),
             )
+
+            # return SearchResult(
+            #     response=response,
+            #     context_data=context_records,
+            #     context_text=context_text,
+            #     completion_time=time.time() - start_time,
+            #     llm_calls=1,
+            #     prompt_tokens=num_tokens(search_prompt, self.token_encoder),
+            # )
 
         except Exception:
             log.exception("Exception in _asearch")

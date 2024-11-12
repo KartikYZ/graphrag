@@ -80,6 +80,7 @@ def _prepare_reports_at_level(
     claim_subject_column: str = schemas.CLAIM_SUBJECT,
     claim_details_column: str = schemas.CLAIM_DETAILS,
 ):
+    
     def get_edge_details(node_df: pd.DataFrame, edge_df: pd.DataFrame, name_col: str):
         return node_df.merge(
             cast(
