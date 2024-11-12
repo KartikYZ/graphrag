@@ -46,3 +46,29 @@ def prepare_community_reports_edges(
         axis=1,
     )
     return TableContainer(table=edge_df)
+
+def prepare_community_reports_edges_cedar(
+    edge_df: pd.DataFrame,
+    to: str = EDGE_DETAILS,
+    id_column: str = EDGE_ID,
+    source_column: str = EDGE_SOURCE,
+    target_column: str = EDGE_TARGET,
+    description_column: str = EDGE_DESCRIPTION,
+    degree_column: str = EDGE_DEGREE,
+    **_kwargs,
+) -> pd.DataFrame:
+    """Merge edge details into an object."""
+    edge_df: pd.DataFrame = edge_df.fillna(
+        value={description_column: _MISSING_DESCRIPTION}
+    )
+    edge_df[to] = edge_df.apply(
+        lambda x: {
+            id_column: x[id_column],
+            source_column: x[source_column],
+            target_column: x[target_column],
+            description_column: x[description_column],
+            degree_column: x[degree_column],
+        },
+        axis=1,
+    )
+    return edge_df

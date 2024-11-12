@@ -44,3 +44,27 @@ def prepare_community_reports_nodes(
         axis=1,
     )
     return TableContainer(table=node_df)
+
+def prepare_community_reports_nodes_cedar(
+    node_df: pd.DataFrame,
+    to: str = NODE_DETAILS,
+    id_column: str = NODE_ID,
+    name_column: str = NODE_NAME,
+    description_column: str = NODE_DESCRIPTION,
+    degree_column: str = NODE_DEGREE,
+    **_kwargs,
+) -> pd.DataFrame:
+    """Merge edge details into an object."""
+    node_df = node_df.fillna(value={description_column: _MISSING_DESCRIPTION})
+
+    # merge values of four columns into a map column
+    node_df[to] = node_df.apply(
+        lambda x: {
+            id_column: x[id_column],
+            name_column: x[name_column],
+            description_column: x[description_column],
+            degree_column: x[degree_column],
+        },
+        axis=1,
+    )
+    return node_df
