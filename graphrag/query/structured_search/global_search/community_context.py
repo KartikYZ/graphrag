@@ -23,7 +23,7 @@ class GlobalCommunityContext(GlobalContextBuilder):
 
     def __init__(
         self,
-        community_reports: list[CommunityReport],
+        community_reports: list[CommunityReport] | None = None,
         entities: list[Entity] | None = None,
         community_reports_map: dict[str, CommunityReport] | None = None,
         entities_map: dict[str, Entity] | None = None,

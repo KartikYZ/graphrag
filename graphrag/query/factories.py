@@ -222,6 +222,7 @@ def get_local_search_engine_cedar(
     return LocalSearch(
         llm=llm,
         context_builder=LocalSearchMixedContext(
+            entities=entities_map.values(), # unused by cedar
             community_reports_map=reports_map,
             text_units_map=text_units_map,
             entities_map=entities_map,
