@@ -25,11 +25,20 @@ class GlobalCommunityContext(GlobalContextBuilder):
         self,
         community_reports: list[CommunityReport],
         entities: list[Entity] | None = None,
+        community_reports_map: dict[str, CommunityReport] | None = None,
+        entities_map: dict[str, Entity] | None = None,
         token_encoder: tiktoken.Encoding | None = None,
         random_state: int = 86,
+        cedar: bool = False
     ):
-        self.community_reports = community_reports
-        self.entities = entities
+        self.cedar = cedar
+        if cedar:
+            self.community_reports_map = community_reports_map
+            self.entities_map = entities_map
+        else:
+            self.community_reports = community_reports
+            self.entities = entities
+        
         self.token_encoder = token_encoder
         self.random_state = random_state
 
@@ -52,6 +61,11 @@ class GlobalCommunityContext(GlobalContextBuilder):
         **kwargs: Any,
     ) -> tuple[str | list[str], dict[str, pd.DataFrame]]:
         """Prepare batches of community report data table as context data for global search."""
+        
+        if self.cedar:
+            self.community_reports = list(self.community_reports_map.values())
+            self.entities = list(self.entities_map.values())
+        
         conversation_history_context = ""
         final_context_data = {}
         if conversation_history:

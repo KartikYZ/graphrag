@@ -155,7 +155,6 @@ def get_local_search_engine(
         response_type=response_type,
     )
 
-
 def get_global_search_engine(
     config: GraphRagConfig,
     reports: list[CommunityReport],
@@ -170,6 +169,108 @@ def get_global_search_engine(
         llm=get_llm(config),
         context_builder=GlobalCommunityContext(
             community_reports=reports, entities=entities, token_encoder=token_encoder
+        ),
+        token_encoder=token_encoder,
+        max_data_tokens=gs_config.data_max_tokens,
+        map_llm_params={
+            "max_tokens": gs_config.map_max_tokens,
+            "temperature": gs_config.temperature,
+            "top_p": gs_config.top_p,
+            "n": gs_config.n,
+        },
+        reduce_llm_params={
+            "max_tokens": gs_config.reduce_max_tokens,
+            "temperature": gs_config.temperature,
+            "top_p": gs_config.top_p,
+            "n": gs_config.n,
+        },
+        allow_general_knowledge=False,
+        json_mode=False,
+        context_builder_params={
+            "use_community_summary": False,
+            "shuffle_data": True,
+            "include_community_rank": True,
+            "min_community_rank": 0,
+            "community_rank_name": "rank",
+            "include_community_weight": True,
+            "community_weight_name": "occurrence weight",
+            "normalize_community_weight": True,
+            "max_tokens": gs_config.max_tokens,
+            "context_name": "Reports",
+        },
+        concurrent_coroutines=gs_config.concurrency,
+        response_type=response_type,
+    )
+    
+def get_local_search_engine_cedar(
+    config: GraphRagConfig,
+    reports_map: dict[str, CommunityReport],
+    text_units_map: dict[str, TextUnit],
+    entities_map: dict[str, Entity],
+    relationships_map: dict[str, Relationship],
+    covariates: dict[str, list[Covariate]],
+    response_type: str,
+    description_embedding_store: BaseVectorStore,
+) -> BaseSearch:
+    """Create a local search engine based on data + configuration."""
+    llm = get_llm(config)
+    text_embedder = get_text_embedder(config)
+    token_encoder = tiktoken.get_encoding(config.encoding_model)
+
+    ls_config = config.local_search
+
+    return LocalSearch(
+        llm=llm,
+        context_builder=LocalSearchMixedContext(
+            community_reports_map=reports_map,
+            text_units_map=text_units_map,
+            entities_map=entities_map,
+            relationships_map=relationships_map,
+            covariates=covariates,
+            entity_text_embeddings=description_embedding_store,
+            embedding_vectorstore_key=EntityVectorStoreKey.ID,  # if the vectorstore uses entity title as ids, set this to EntityVectorStoreKey.TITLE
+            text_embedder=text_embedder,
+            token_encoder=token_encoder,
+            cedar=True
+        ),
+        token_encoder=token_encoder,
+        llm_params={
+            "max_tokens": ls_config.llm_max_tokens,  # change this based on the token limit you have on your model (if you are using a model with 8k limit, a good setting could be 1000=1500)
+            "temperature": ls_config.temperature,
+            "top_p": ls_config.top_p,
+            "n": ls_config.n,
+        },
+        context_builder_params={
+            "text_unit_prop": ls_config.text_unit_prop,
+            "community_prop": ls_config.community_prop,
+            "conversation_history_max_turns": ls_config.conversation_history_max_turns,
+            "conversation_history_user_turns_only": True,
+            "top_k_mapped_entities": ls_config.top_k_entities,
+            "top_k_relationships": ls_config.top_k_relationships,
+            "include_entity_rank": True,
+            "include_relationship_weight": True,
+            "include_community_rank": False,
+            "return_candidate_context": False,
+            "embedding_vectorstore_key": EntityVectorStoreKey.ID,  # set this to EntityVectorStoreKey.TITLE if the vectorstore uses entity title as ids
+            "max_tokens": ls_config.max_tokens,  # change this based on the token limit you have on your model (if you are using a model with 8k limit, a good setting could be 5000)
+        },
+        response_type=response_type,
+    )
+
+def get_global_search_engine_cedar(
+    config: GraphRagConfig,
+    reports_map: dict[str, CommunityReport],
+    entities_map: dict[str, Entity],
+    response_type: str,
+) -> BaseSearch:
+    """Create a global search engine based on data + configuration."""
+    token_encoder = tiktoken.get_encoding(config.encoding_model)
+    gs_config = config.global_search
+
+    return GlobalSearch(
+        llm=get_llm(config),
+        context_builder=GlobalCommunityContext(
+            community_reports_map=reports_map, entities_map=entities_map, token_encoder=token_encoder, cedar=True
         ),
         token_encoder=token_encoder,
         max_data_tokens=gs_config.data_max_tokens,

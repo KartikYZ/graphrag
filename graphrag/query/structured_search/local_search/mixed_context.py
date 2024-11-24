@@ -56,29 +56,42 @@ class LocalSearchMixedContext(LocalContextBuilder):
         entities: list[Entity],
         entity_text_embeddings: BaseVectorStore,
         text_embedder: BaseTextEmbedding,
+        entities_map: dict[str, Entity] | None = None,
         text_units: list[TextUnit] | None = None,
+        text_units_map: dict[str, TextUnit] | None = None,
         community_reports: list[CommunityReport] | None = None,
+        community_reports_map: dict[str, CommunityReport] | None = None,
         relationships: list[Relationship] | None = None,
+        relationships_map: dict[str, Relationship] | None = None,
         covariates: dict[str, list[Covariate]] | None = None,
         token_encoder: tiktoken.Encoding | None = None,
         embedding_vectorstore_key: str = EntityVectorStoreKey.ID,
+        cedar: bool = False
     ):
-        if community_reports is None:
-            community_reports = []
-        if relationships is None:
-            relationships = []
-        if covariates is None:
-            covariates = {}
-        if text_units is None:
-            text_units = []
-        self.entities = {entity.id: entity for entity in entities}
-        self.community_reports = {
-            community.id: community for community in community_reports
-        }
-        self.text_units = {unit.id: unit for unit in text_units}
-        self.relationships = {
-            relationship.id: relationship for relationship in relationships
-        }
+        self.cedar = cedar
+        if self.cedar:
+            self.entities = entities_map
+            self.community_reports = community_reports_map
+            self.text_units = text_units_map
+            self.relationships = relationships_map
+        else:
+            if community_reports is None:
+                community_reports = []
+            if relationships is None:
+                relationships = []
+            if covariates is None:
+                covariates = {}
+            if text_units is None:
+                text_units = []
+            self.entities = {entity.id: entity for entity in entities}
+            self.community_reports = {
+                community.id: community for community in community_reports
+            }
+            self.text_units = {unit.id: unit for unit in text_units}
+            self.relationships = {
+                relationship.id: relationship for relationship in relationships
+            }
+        
         self.covariates = covariates
         self.entity_text_embeddings = entity_text_embeddings
         self.text_embedder = text_embedder
