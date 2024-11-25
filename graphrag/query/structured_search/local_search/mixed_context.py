@@ -79,8 +79,6 @@ class LocalSearchMixedContext(LocalContextBuilder):
                 community_reports = []
             if relationships is None:
                 relationships = []
-            if covariates is None:
-                covariates = {}
             if text_units is None:
                 text_units = []
             self.entities = {entity.id: entity for entity in entities}
@@ -92,6 +90,8 @@ class LocalSearchMixedContext(LocalContextBuilder):
                 relationship.id: relationship for relationship in relationships
             }
         
+        if covariates is None:
+            covariates = {}
         self.covariates = covariates
         self.entity_text_embeddings = entity_text_embeddings
         self.text_embedder = text_embedder
