@@ -47,6 +47,14 @@ class CreateCommunityReportsStrategyType(str, Enum):
         """Get a string representation."""
         return f'"{self.value}"'
 
+class RefineCommunityReportsStrategyType(str, Enum):
+    """RefineCommunityReportsStrategyType class definition."""
+
+    graph_intelligence = "graph_intelligence"
+
+    def __repr__(self):
+        """Get a string representation."""
+        return f'"{self.value}"'
 
 @verb(name="create_community_reports")
 async def create_community_reports(
@@ -193,6 +201,21 @@ async def _generate_report(
         community_id, community_context, community_level, callbacks, cache, strategy
     )
 
+async def _refine_report(
+    runner: CommunityReportsStrategy,
+    cache: PipelineCache,
+    callbacks: VerbCallbacks,
+    strategy: dict,
+    community_id: int | str,
+    community_level: int,
+    orignal_report: str,
+    new_data: str
+) -> CommunityReport | None:
+    """Generate a report for a single community."""
+    return await runner(
+        community_id, orignal_report, new_data, community_level, callbacks, cache, strategy
+    )
+
 
 def load_strategy(
     strategy: CreateCommunityReportsStrategyType,
@@ -202,6 +225,9 @@ def load_strategy(
         case CreateCommunityReportsStrategyType.graph_intelligence:
             from .strategies.graph_intelligence import run
             return run
+        case RefineCommunityReportsStrategyType.graph_intelligence:
+            from .strategies.graph_intelligence import run_refinement
+            return run_refinement
         case _:
             msg = f"Unknown strategy: {strategy}"
             raise ValueError(msg)

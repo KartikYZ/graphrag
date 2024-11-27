@@ -5,6 +5,7 @@
 
 from .create_community_reports import (
     CreateCommunityReportsStrategyType,
+    RefineCommunityReportsStrategyType,
     create_community_reports,
 )
 from .prepare_community_reports import prepare_community_reports
@@ -15,7 +16,7 @@ from .restore_community_hierarchy import restore_community_hierarchy
 
 __all__ = [
     "CreateCommunityReportsStrategyType",
-    "create_community_reports",
+    "RefineCommunityReportsStrategyType",
     "create_community_reports",
     "prepare_community_reports",
     "prepare_community_reports_claims",

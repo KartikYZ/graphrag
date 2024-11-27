@@ -89,6 +89,69 @@ async def _run_extractor(
         reporter.error("Community Report Extraction Error", e, traceback.format_exc())
         return None
 
+async def run_refinement(
+    community: str | int,
+    original_report: str,
+    new_data: str,
+    level: int,
+    reporter: VerbCallbacks,
+    pipeline_cache: PipelineCache,
+    args: StrategyConfig,
+) -> CommunityReport | None:
+    """Run the graph intelligence entity extraction strategy."""
+    llm_config = args.get(
+        "llm", {"type": LLMType.StaticResponse, "responses": MOCK_RESPONSES}
+    )
+    llm_type = llm_config.get("type", LLMType.StaticResponse)
+    llm = load_llm(
+        "community_reporting", llm_type, reporter, pipeline_cache, llm_config
+    )
+    return await _run_refiner(llm, community, original_report, new_data, level, args, reporter)
+
+async def _run_refiner(
+    llm: CompletionLLM,
+    community: str | int,
+    original_report: str,
+    new_data: str,
+    level: int,
+    args: StrategyConfig,
+    reporter: VerbCallbacks,
+) -> CommunityReport | None:
+    # RateLimiter
+    rate_limiter = RateLimiter(rate=1, per=60)
+    refiner = CommunityReportsRefiner(
+        llm,
+        extraction_prompt=args.get("update_prompt", None),
+        max_report_length=args.get("max_report_length", None),
+        on_error=lambda e, stack, _data: reporter.error(
+            "Community Report Refinement Error", e, stack
+        ),
+    )
+
+    try:
+        await rate_limiter.acquire()
+        results = await refiner({"original_report": original_report, "new_data": new_data})
+        report = results.structured_output
+        if report is None or len(report.keys()) == 0:
+            log.warning("No report found for community: %s", community)
+            return None
+
+        return CommunityReport(
+            community=community,
+            full_content=results.output,
+            level=level,
+            rank=_parse_rank(report),
+            title=report.get("title", f"Community Report: {community}"),
+            rank_explanation=report.get("rating_explanation", ""),
+            summary=report.get("summary", ""),
+            findings=report.get("findings", []),
+            full_content_json=json.dumps(report, indent=4, ensure_ascii=False),
+        )
+    except Exception as e:
+        log.exception("Error processing community: %s", community)
+        reporter.error("Community Report Refinement Error", e, traceback.format_exc())
+        return None
+
 
 def _parse_rank(report: dict) -> float:
     rank = report.get("rating", -1)
